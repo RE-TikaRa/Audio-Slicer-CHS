@@ -236,7 +236,8 @@ def main():
         hop_size=args.hop_size,
         max_sil_kept=args.max_sil_kept
     )
-    chunks = slicer.slice(audio)
+    sil_tags, total_frames, _ = slicer.get_slice_tags(audio)
+    chunks = slicer.slice(audio, sil_tags, total_frames)
     if not os.path.exists(out):
         os.makedirs(out)
     for i, chunk in enumerate(chunks):

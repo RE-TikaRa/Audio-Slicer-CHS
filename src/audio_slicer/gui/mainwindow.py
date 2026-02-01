@@ -11,7 +11,7 @@ from typing import List
 from PySide6.QtCore import *
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
-from audio_slicer.utils.slicer2 import Slicer, estimate_dynamic_threshold_db, build_vad_mask
+from audio_slicer.utils.slicer2 import Slicer, estimate_dynamic_threshold_db, build_vad_mask, get_rms
 from audio_slicer.utils.processing import process_audio_file, resolve_ffmpeg_path
 
 from audio_slicer.gui.Ui_MainWindow import Ui_MainWindow
@@ -90,6 +90,16 @@ class MainWindow(QMainWindow):
 
         # Language setup
         self.current_language = i18n.normalize_language(QLocale.system().name())
+        self._preview_embed = False
+        self._preview_window: QDialog | None = None
+        self._preview_label: QLabel | None = None
+        self._preview_zoom_label: QLabel | None = None
+        self._preview_zoom_value: QLabel | None = None
+        self._preview_zoom_slider: QSlider | None = None
+        self._preview_original_pixmap: QPixmap | None = None
+        self._preview_scroll_viewport: QWidget | None = None
+        self._preview_pixmap_path: str | None = None
+        self._style_sheet: str | None = None
         self._init_language_selector()
         self._init_extra_ui()
         self._load_presets()
@@ -450,17 +460,25 @@ class MainWindow(QMainWindow):
         self.ui.cbParallelMode.setEnabled(is_enabled)
         self.ui.sbParallelJobs.setEnabled(is_enabled)
         self.ui.cbFallbackMode.setEnabled(is_enabled)
+        self.ui.btnRecommend.setEnabled(is_enabled)
         self.processing = processing
 
     def _init_extra_ui(self):
-        self._init_preview_panel()
+        if self._preview_embed:
+            self._init_preview_panel()
         self._init_settings_tabs()
+        self._init_main_splitter()
+        self._init_recommend_controls()
         self._init_advanced_controls()
+        self._apply_layout_style()
+        self._apply_combo_popup_style()
 
     def _init_preview_panel(self):
         self.groupBoxPreview = QGroupBox(self)
         self.groupBoxPreview.setObjectName("groupBoxPreview")
         preview_layout = QVBoxLayout(self.groupBoxPreview)
+        preview_layout.setContentsMargins(10, 12, 10, 10)
+        preview_layout.setSpacing(8)
         self.labelPreview = QLabel(self.groupBoxPreview)
         self.labelPreview.setObjectName("labelPreview")
         self.labelPreview.setAlignment(Qt.AlignCenter)
@@ -468,7 +486,11 @@ class MainWindow(QMainWindow):
         self.labelPreview.setMinimumSize(240, 240)
         self.labelPreview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         preview_layout.addWidget(self.labelPreview)
-        self.ui.horizontalLayout.addWidget(self.groupBoxPreview)
+        self.ui.verticalLayout_3.removeWidget(self.ui.btnPreviewSelection)
+        action_row = QHBoxLayout()
+        action_row.addStretch()
+        action_row.addWidget(self.ui.btnPreviewSelection)
+        preview_layout.addLayout(action_row)
         self._preview_pixmap_path: str | None = None
 
     def _init_settings_tabs(self):
@@ -476,84 +498,336 @@ class MainWindow(QMainWindow):
         self.ui.tabBasic = QWidget(self.ui.settingsTabs)
         self.ui.tabAdvanced = QWidget(self.ui.settingsTabs)
         self.ui.basicFormLayout = self.ui.formLayout
-        self.ui.advancedFormLayout = QFormLayout()
+        self.ui.advancedScroll = QScrollArea(self.ui.tabAdvanced)
+        self.ui.advancedScroll.setWidgetResizable(True)
+        self.ui.advancedContainer = QWidget(self.ui.advancedScroll)
+        self.ui.advancedLayout = QVBoxLayout(self.ui.advancedContainer)
+        self.ui.advancedLayout.setContentsMargins(6, 6, 6, 6)
+        self.ui.advancedLayout.setSpacing(12)
 
         self.ui.verticalLayout_3.removeItem(self.ui.formLayout)
         self.ui.tabBasic.setLayout(self.ui.basicFormLayout)
-        self.ui.tabAdvanced.setLayout(self.ui.advancedFormLayout)
+        advanced_tab_layout = QVBoxLayout(self.ui.tabAdvanced)
+        advanced_tab_layout.setContentsMargins(0, 0, 0, 0)
+        advanced_tab_layout.addWidget(self.ui.advancedScroll)
+        self.ui.advancedScroll.setWidget(self.ui.advancedContainer)
         self.ui.settingsTabs.addTab(self.ui.tabBasic, "")
         self.ui.settingsTabs.addTab(self.ui.tabAdvanced, "")
         self.ui.verticalLayout_3.insertWidget(0, self.ui.settingsTabs)
 
+    def _init_recommend_controls(self):
+        self.ui.labelRecommend = QLabel(self.ui.groupBox_2)
+        self.ui.btnRecommend = QPushButton(self.ui.groupBox_2)
+        self.ui.formLayout.insertRow(0, self.ui.labelRecommend, self.ui.btnRecommend)
+        self.ui.btnRecommend.clicked.connect(self._on_recommend_params)
+
+    def _init_main_splitter(self):
+        self.ui.mainSplitter = QSplitter(Qt.Horizontal, self)
+        self.ui.mainSplitter.setChildrenCollapsible(False)
+        self.ui.leftSplitter = QSplitter(Qt.Vertical, self.ui.mainSplitter)
+        self.ui.leftSplitter.setChildrenCollapsible(False)
+
+        self.ui.horizontalLayout.removeWidget(self.ui.groupBox)
+        self.ui.horizontalLayout.removeWidget(self.ui.groupBox_2)
+        if self._preview_embed and self.groupBoxPreview:
+            self.ui.horizontalLayout.removeWidget(self.groupBoxPreview)
+
+        self.ui.leftSplitter.addWidget(self.ui.groupBox)
+        if self._preview_embed and self.groupBoxPreview:
+            self.ui.leftSplitter.addWidget(self.groupBoxPreview)
+            self.ui.leftSplitter.setStretchFactor(0, 3)
+            self.ui.leftSplitter.setStretchFactor(1, 2)
+        else:
+            self.ui.leftSplitter.setStretchFactor(0, 1)
+
+        self.ui.mainSplitter.addWidget(self.ui.leftSplitter)
+        self.ui.mainSplitter.addWidget(self.ui.groupBox_2)
+        self.ui.mainSplitter.setStretchFactor(0, 3)
+        self.ui.mainSplitter.setStretchFactor(1, 2)
+
+        while self.ui.horizontalLayout.count():
+            item = self.ui.horizontalLayout.takeAt(0)
+            if item.widget():
+                item.widget().setParent(None)
+        self.ui.horizontalLayout.addWidget(self.ui.mainSplitter)
+
+    def _apply_layout_style(self):
+        self.ui.verticalLayout.setContentsMargins(12, 12, 12, 12)
+        self.ui.verticalLayout.setSpacing(8)
+        self.ui.verticalLayout_2.setContentsMargins(10, 12, 10, 10)
+        self.ui.verticalLayout_2.setSpacing(8)
+        self.ui.verticalLayout_3.setContentsMargins(10, 12, 10, 10)
+        self.ui.verticalLayout_3.setSpacing(8)
+        self.ui.formLayout.setHorizontalSpacing(10)
+        self.ui.formLayout.setVerticalSpacing(8)
+        self.ui.advancedPresetLayout.setHorizontalSpacing(10)
+        self.ui.advancedPresetLayout.setVerticalSpacing(8)
+        self.ui.advancedNamingLayout.setHorizontalSpacing(10)
+        self.ui.advancedNamingLayout.setVerticalSpacing(8)
+        self.ui.advancedDetectionLayout.setHorizontalSpacing(10)
+        self.ui.advancedDetectionLayout.setVerticalSpacing(8)
+        self.ui.advancedPerformanceLayout.setHorizontalSpacing(10)
+        self.ui.advancedPerformanceLayout.setVerticalSpacing(8)
+        if self.ui.advancedContainer:
+            self.ui.advancedContainer.setMinimumWidth(1)
+        self.ui.settingsTabs.setDocumentMode(True)
+        self.ui.settingsTabs.setMovable(False)
+        self.ui.groupBox_2.setMinimumWidth(320)
+        if self._preview_embed and self.groupBoxPreview:
+            self.groupBoxPreview.setMinimumHeight(240)
+        self.setMinimumSize(1024, 640)
+        self.resize(1180, 720)
+        style = """
+            QGroupBox {
+                border: 1px solid rgba(120, 120, 120, 0.28);
+                border-radius: 8px;
+                margin-top: 12px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 4px;
+            }
+            QTabWidget::pane {
+                border: 1px solid rgba(120, 120, 120, 0.22);
+                border-radius: 8px;
+            }
+            QTabBar::tab {
+                padding: 6px 12px;
+                margin-right: 4px;
+                border-radius: 8px;
+            }
+            QTabBar::tab:selected {
+                background: rgba(59, 130, 246, 0.16);
+                border-radius: 8px;
+            }
+            QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QPlainTextEdit, QTextEdit {
+                padding: 4px 6px;
+                border-radius: 8px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+                border: none;
+            }
+            QComboBox::down-arrow {
+                width: 8px;
+                height: 8px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid rgba(120, 120, 120, 0.28);
+                border-radius: 8px;
+                padding: 4px;
+                background: palette(base);
+                outline: 0;
+            }
+            QComboBox QListView {
+                border-radius: 8px;
+            }
+            QComboBox QAbstractItemView::viewport {
+                border-radius: 8px;
+                background: palette(base);
+            }
+            QFrame#qt_ComboBox_Popup {
+                border-radius: 8px;
+                border: 1px solid rgba(120, 120, 120, 0.28);
+                background: palette(base);
+            }
+            QFrame#qt_ComboBox_Popup QAbstractItemView {
+                border-radius: 8px;
+                border: none;
+            }
+            QComboBox QAbstractItemView::item {
+                border-radius: 6px;
+                padding: 4px 6px;
+                margin: 2px;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background: rgba(59, 130, 246, 0.16);
+                border-radius: 6px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background: rgba(59, 130, 246, 0.10);
+                border-radius: 6px;
+            }
+            QPushButton {
+                padding: 6px 10px;
+                border-radius: 8px;
+            }
+            QListWidget, QTableWidget, QTreeWidget, QScrollArea, QFrame {
+                border-radius: 8px;
+            }
+            QListWidget::item, QTreeWidget::item, QTableWidget::item {
+                border-radius: 6px;
+                padding: 4px 6px;
+            }
+            QListWidget::item:selected, QTreeWidget::item:selected, QTableWidget::item:selected {
+                background: rgba(59, 130, 246, 0.16);
+                border-radius: 6px;
+            }
+            QProgressBar {
+                border-radius: 8px;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                border-radius: 8px;
+            }
+            QCheckBox::indicator, QRadioButton::indicator {
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+            }
+            QSlider::groove:horizontal {
+                height: 6px;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                width: 14px;
+                margin: -4px 0;
+                border-radius: 7px;
+            }
+            QMessageBox {
+                border-radius: 8px;
+            }
+            QMessageBox QLabel {
+                padding: 2px 0;
+            }
+            QMessageBox QPushButton {
+                min-width: 80px;
+            }
+        """
+        self._style_sheet = style
+        self.setStyleSheet(style)
+        if self._preview_window:
+            self._preview_window.setStyleSheet(style)
+
+    def _apply_combo_popup_style(self):
+        for combo in self.findChildren(QComboBox):
+            view = combo.view()
+            if view is None:
+                continue
+            view.setFrameShape(QFrame.NoFrame)
+            popup = view.window()
+            if popup is None:
+                continue
+            popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            flags = popup.windowFlags()
+            popup.setWindowFlags(
+                flags
+                | Qt.WindowType.FramelessWindowHint
+                | Qt.WindowType.NoDropShadowWindowHint
+            )
+            if self._style_sheet:
+                popup.setStyleSheet(self._style_sheet)
+
     def _init_advanced_controls(self):
-        advanced_layout = self.ui.advancedFormLayout
+        self.ui.groupAdvancedPresets = QGroupBox(self.ui.tabAdvanced)
+        self.ui.groupAdvancedNaming = QGroupBox(self.ui.tabAdvanced)
+        self.ui.groupAdvancedDetection = QGroupBox(self.ui.tabAdvanced)
+        self.ui.groupAdvancedPerformance = QGroupBox(self.ui.tabAdvanced)
+
+        self.ui.advancedPresetLayout = QFormLayout(self.ui.groupAdvancedPresets)
+        self.ui.advancedNamingLayout = QFormLayout(self.ui.groupAdvancedNaming)
+        self.ui.advancedDetectionLayout = QFormLayout(self.ui.groupAdvancedDetection)
+        self.ui.advancedPerformanceLayout = QFormLayout(self.ui.groupAdvancedPerformance)
+
+        self.ui.advancedLayout.addWidget(self.ui.groupAdvancedPresets)
+        self.ui.advancedLayout.addWidget(self.ui.groupAdvancedNaming)
+        self.ui.advancedLayout.addWidget(self.ui.groupAdvancedDetection)
+        self.ui.advancedLayout.addWidget(self.ui.groupAdvancedPerformance)
+        self.ui.advancedLayout.addStretch()
+
+        for group in (
+            self.ui.groupAdvancedPresets,
+            self.ui.groupAdvancedNaming,
+            self.ui.groupAdvancedDetection,
+            self.ui.groupAdvancedPerformance,
+        ):
+            group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+
         self.ui.labelPreset = QLabel(self.ui.groupBox_2)
         self.ui.cbPresets = QComboBox(self.ui.groupBox_2)
+        preset_view = QListView(self.ui.cbPresets)
+        preset_view.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.ui.cbPresets.setView(preset_view)
+        self.ui.cbPresets.setMaxVisibleItems(8)
         self.ui.btnPresetSave = QPushButton(self.ui.groupBox_2)
         self.ui.btnPresetDelete = QPushButton(self.ui.groupBox_2)
-        preset_layout = QHBoxLayout()
-        preset_layout.addWidget(self.ui.cbPresets)
-        preset_layout.addWidget(self.ui.btnPresetSave)
-        preset_layout.addWidget(self.ui.btnPresetDelete)
+        self.ui.btnPresetReset = QPushButton(self.ui.groupBox_2)
+        preset_layout = QVBoxLayout()
+        preset_layout.setContentsMargins(0, 0, 0, 0)
+        preset_layout.setSpacing(6)
+        preset_row = QHBoxLayout()
+        preset_row.setContentsMargins(0, 0, 0, 0)
+        preset_row.setSpacing(6)
+        preset_row.addWidget(self.ui.cbPresets, 1)
+        button_row = QHBoxLayout()
+        button_row.setContentsMargins(0, 0, 0, 0)
+        button_row.setSpacing(6)
+        button_row.addStretch()
+        button_row.addWidget(self.ui.btnPresetSave)
+        button_row.addWidget(self.ui.btnPresetDelete)
+        button_row.addWidget(self.ui.btnPresetReset)
+        preset_layout.addLayout(preset_row)
+        preset_layout.addLayout(button_row)
         preset_widget = QWidget(self.ui.groupBox_2)
         preset_widget.setLayout(preset_layout)
-        advanced_layout.addRow(self.ui.labelPreset, preset_widget)
+        self.ui.advancedPresetLayout.addRow(self.ui.labelPreset, preset_widget)
 
         self.ui.labelNamePrefix = QLabel(self.ui.groupBox_2)
         self.ui.leNamePrefix = QLineEdit(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelNamePrefix, self.ui.leNamePrefix)
+        self.ui.advancedNamingLayout.addRow(self.ui.labelNamePrefix, self.ui.leNamePrefix)
 
         self.ui.labelNameSuffix = QLabel(self.ui.groupBox_2)
         self.ui.leNameSuffix = QLineEdit(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelNameSuffix, self.ui.leNameSuffix)
+        self.ui.advancedNamingLayout.addRow(self.ui.labelNameSuffix, self.ui.leNameSuffix)
 
         self.ui.labelNameTimestamp = QLabel(self.ui.groupBox_2)
         self.ui.cbxNameTimestamp = QCheckBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelNameTimestamp, self.ui.cbxNameTimestamp)
+        self.ui.advancedNamingLayout.addRow(self.ui.labelNameTimestamp, self.ui.cbxNameTimestamp)
 
         self.ui.labelExportCsv = QLabel(self.ui.groupBox_2)
         self.ui.cbxExportCsv = QCheckBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelExportCsv, self.ui.cbxExportCsv)
+        self.ui.advancedNamingLayout.addRow(self.ui.labelExportCsv, self.ui.cbxExportCsv)
 
         self.ui.labelExportJson = QLabel(self.ui.groupBox_2)
         self.ui.cbxExportJson = QCheckBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelExportJson, self.ui.cbxExportJson)
+        self.ui.advancedNamingLayout.addRow(self.ui.labelExportJson, self.ui.cbxExportJson)
 
         self.ui.labelDynamicThreshold = QLabel(self.ui.groupBox_2)
         self.ui.cbxDynamicThreshold = QCheckBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelDynamicThreshold, self.ui.cbxDynamicThreshold)
+        self.ui.advancedDetectionLayout.addRow(self.ui.labelDynamicThreshold, self.ui.cbxDynamicThreshold)
 
         self.ui.labelDynamicOffset = QLabel(self.ui.groupBox_2)
         self.ui.leDynamicOffset = QLineEdit(self.ui.groupBox_2)
         self.ui.leDynamicOffset.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        advanced_layout.addRow(self.ui.labelDynamicOffset, self.ui.leDynamicOffset)
+        self.ui.advancedDetectionLayout.addRow(self.ui.labelDynamicOffset, self.ui.leDynamicOffset)
 
         self.ui.labelVAD = QLabel(self.ui.groupBox_2)
         self.ui.cbxVAD = QCheckBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelVAD, self.ui.cbxVAD)
+        self.ui.advancedDetectionLayout.addRow(self.ui.labelVAD, self.ui.cbxVAD)
 
         self.ui.labelVADSensitivity = QLabel(self.ui.groupBox_2)
         self.ui.leVADSensitivity = QLineEdit(self.ui.groupBox_2)
         self.ui.leVADSensitivity.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        advanced_layout.addRow(self.ui.labelVADSensitivity, self.ui.leVADSensitivity)
+        self.ui.advancedDetectionLayout.addRow(self.ui.labelVADSensitivity, self.ui.leVADSensitivity)
 
         self.ui.labelVADHangover = QLabel(self.ui.groupBox_2)
         self.ui.leVADHangover = QLineEdit(self.ui.groupBox_2)
         self.ui.leVADHangover.setAlignment(Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter)
-        advanced_layout.addRow(self.ui.labelVADHangover, self.ui.leVADHangover)
+        self.ui.advancedDetectionLayout.addRow(self.ui.labelVADHangover, self.ui.leVADHangover)
 
         self.ui.labelParallelMode = QLabel(self.ui.groupBox_2)
         self.ui.cbParallelMode = QComboBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelParallelMode, self.ui.cbParallelMode)
+        self.ui.advancedPerformanceLayout.addRow(self.ui.labelParallelMode, self.ui.cbParallelMode)
 
         self.ui.labelParallelJobs = QLabel(self.ui.groupBox_2)
         self.ui.sbParallelJobs = QSpinBox(self.ui.groupBox_2)
         self.ui.sbParallelJobs.setRange(1, max(1, (os.cpu_count() or 1)))
-        advanced_layout.addRow(self.ui.labelParallelJobs, self.ui.sbParallelJobs)
+        self.ui.advancedPerformanceLayout.addRow(self.ui.labelParallelJobs, self.ui.sbParallelJobs)
 
         self.ui.labelFallbackMode = QLabel(self.ui.groupBox_2)
         self.ui.cbFallbackMode = QComboBox(self.ui.groupBox_2)
-        advanced_layout.addRow(self.ui.labelFallbackMode, self.ui.cbFallbackMode)
+        self.ui.advancedPerformanceLayout.addRow(self.ui.labelFallbackMode, self.ui.cbFallbackMode)
 
         self.ui.leDynamicOffset.setValidator(QDoubleValidator())
         self.ui.leVADSensitivity.setValidator(QDoubleValidator())
@@ -568,6 +842,7 @@ class MainWindow(QMainWindow):
         self._loading_presets = False
         self.ui.btnPresetSave.clicked.connect(self._on_save_preset)
         self.ui.btnPresetDelete.clicked.connect(self._on_delete_preset)
+        self.ui.btnPresetReset.clicked.connect(self._on_reset_presets)
         self.ui.cbPresets.currentIndexChanged.connect(self._on_preset_selected)
 
     def _preset_file(self) -> str:
@@ -586,7 +861,119 @@ class MainWindow(QMainWindow):
                     self._presets = json.load(f)
             except Exception:
                 self._presets = {}
+        if not self._presets:
+            self._presets = self._default_presets()
+            self._save_presets()
         self._refresh_preset_combo()
+
+    def _default_presets(self) -> dict:
+        return {
+            "默认（通用）": {
+                "threshold": "-40",
+                "min_length": "5000",
+                "min_interval": "300",
+                "hop_size": "10",
+                "max_silence": "1000",
+                "output_format": "wav",
+                "name_prefix": "",
+                "name_suffix": "",
+                "name_timestamp": False,
+                "export_csv": False,
+                "export_json": False,
+                "dynamic_enabled": True,
+                "dynamic_offset_db": "6",
+                "vad_enabled": True,
+                "vad_sensitivity_db": "6",
+                "vad_hangover_ms": "120",
+                "parallel_mode": "thread",
+                "parallel_jobs": min(4, max(1, (os.cpu_count() or 1))),
+                "fallback_mode": "ffmpeg_then_librosa",
+            },
+            "人声（保守）": {
+                "threshold": "-45",
+                "min_length": "6000",
+                "min_interval": "400",
+                "hop_size": "10",
+                "max_silence": "1500",
+                "output_format": "wav",
+                "name_prefix": "",
+                "name_suffix": "",
+                "name_timestamp": False,
+                "export_csv": False,
+                "export_json": False,
+                "dynamic_enabled": True,
+                "dynamic_offset_db": "5",
+                "vad_enabled": True,
+                "vad_sensitivity_db": "7",
+                "vad_hangover_ms": "180",
+                "parallel_mode": "thread",
+                "parallel_jobs": min(4, max(1, (os.cpu_count() or 1))),
+                "fallback_mode": "ffmpeg_then_librosa",
+            },
+            "人声（激进）": {
+                "threshold": "-35",
+                "min_length": "3000",
+                "min_interval": "200",
+                "hop_size": "10",
+                "max_silence": "600",
+                "output_format": "wav",
+                "name_prefix": "",
+                "name_suffix": "",
+                "name_timestamp": False,
+                "export_csv": False,
+                "export_json": False,
+                "dynamic_enabled": True,
+                "dynamic_offset_db": "7",
+                "vad_enabled": True,
+                "vad_sensitivity_db": "5",
+                "vad_hangover_ms": "80",
+                "parallel_mode": "thread",
+                "parallel_jobs": min(4, max(1, (os.cpu_count() or 1))),
+                "fallback_mode": "ffmpeg_then_librosa",
+            },
+            "长音频": {
+                "threshold": "-40",
+                "min_length": "8000",
+                "min_interval": "500",
+                "hop_size": "20",
+                "max_silence": "2000",
+                "output_format": "flac",
+                "name_prefix": "",
+                "name_suffix": "",
+                "name_timestamp": True,
+                "export_csv": True,
+                "export_json": False,
+                "dynamic_enabled": True,
+                "dynamic_offset_db": "6",
+                "vad_enabled": True,
+                "vad_sensitivity_db": "6",
+                "vad_hangover_ms": "200",
+                "parallel_mode": "thread",
+                "parallel_jobs": min(4, max(1, (os.cpu_count() or 1))),
+                "fallback_mode": "ffmpeg_then_librosa",
+            },
+            "播客/对白": {
+                "threshold": "-42",
+                "min_length": "4000",
+                "min_interval": "250",
+                "hop_size": "10",
+                "max_silence": "1200",
+                "output_format": "wav",
+                "name_prefix": "",
+                "name_suffix": "",
+                "name_timestamp": False,
+                "export_csv": True,
+                "export_json": True,
+                "dynamic_enabled": True,
+                "dynamic_offset_db": "6",
+                "vad_enabled": True,
+                "vad_sensitivity_db": "6",
+                "vad_hangover_ms": "150",
+                "parallel_mode": "thread",
+                "parallel_jobs": min(4, max(1, (os.cpu_count() or 1))),
+                "fallback_mode": "ffmpeg_then_librosa",
+            },
+        }
 
     def _save_presets(self):
         with open(self._preset_path, "w", encoding="utf-8") as f:
@@ -698,6 +1085,28 @@ class MainWindow(QMainWindow):
             self._save_presets()
             self._refresh_preset_combo()
 
+    def _on_reset_presets(self):
+        ret = QMessageBox.question(
+            self,
+            i18n.text("preset_reset_title", self.current_language),
+            i18n.text("preset_reset_confirm", self.current_language),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if ret != QMessageBox.Yes:
+            return
+        self._presets = self._default_presets()
+        self._save_presets()
+        selected = next(iter(self._presets.keys()), None)
+        self._refresh_preset_combo(selected)
+        if selected:
+            self._apply_preset(self._presets[selected])
+        QMessageBox.information(
+            self,
+            i18n.text("preset_reset_done_title", self.current_language),
+            i18n.text("preset_reset_done", self.current_language),
+        )
+
     def _on_preset_selected(self, index: int):
         if self._loading_presets:
             return
@@ -790,14 +1199,20 @@ class MainWindow(QMainWindow):
         self.ui.btnStart.setText(
             i18n.text("slicing", self.current_language) if self.processing else i18n.text("start", self.current_language)
         )
-        self.groupBoxPreview.setTitle(i18n.text("preview", self.current_language))
-        if self._preview_pixmap_path:
-            self._update_preview_pixmap()
-        else:
-            self.labelPreview.setText(i18n.text("preview_placeholder", self.current_language))
+        if self._preview_embed and self.groupBoxPreview:
+            self.groupBoxPreview.setTitle(i18n.text("preview", self.current_language))
+            if self._preview_pixmap_path:
+                self._update_preview_pixmap()
+            else:
+                self.labelPreview.setText(i18n.text("preview_placeholder", self.current_language))
+        if self._preview_window:
+            self._preview_window.setWindowTitle(i18n.text("preview", self.current_language))
+        if self._preview_zoom_label:
+            self._preview_zoom_label.setText(i18n.text("preview_zoom", self.current_language))
         self.ui.labelPreset.setText(i18n.text("presets", self.current_language))
         self.ui.btnPresetSave.setText(i18n.text("preset_save", self.current_language))
         self.ui.btnPresetDelete.setText(i18n.text("preset_delete", self.current_language))
+        self.ui.btnPresetReset.setText(i18n.text("preset_reset", self.current_language))
         self.ui.labelNamePrefix.setText(i18n.text("name_prefix", self.current_language))
         self.ui.labelNameSuffix.setText(i18n.text("name_suffix", self.current_language))
         self.ui.labelNameTimestamp.setText(i18n.text("name_timestamp", self.current_language))
@@ -813,6 +1228,12 @@ class MainWindow(QMainWindow):
         self.ui.labelFallbackMode.setText(i18n.text("fallback_mode", self.current_language))
         self.ui.settingsTabs.setTabText(0, i18n.text("settings_basic", self.current_language))
         self.ui.settingsTabs.setTabText(1, i18n.text("settings_advanced", self.current_language))
+        self.ui.labelRecommend.setText(i18n.text("recommend_label", self.current_language))
+        self.ui.btnRecommend.setText(i18n.text("recommend_button", self.current_language))
+        self.ui.groupAdvancedPresets.setTitle(i18n.text("advanced_group_presets", self.current_language))
+        self.ui.groupAdvancedNaming.setTitle(i18n.text("advanced_group_naming", self.current_language))
+        self.ui.groupAdvancedDetection.setTitle(i18n.text("advanced_group_detection", self.current_language))
+        self.ui.groupAdvancedPerformance.setTitle(i18n.text("advanced_group_performance", self.current_language))
         self._refresh_parallel_mode_options()
         self._refresh_fallback_mode_options()
         self._refresh_preset_combo(self.ui.cbPresets.currentText())
@@ -878,12 +1299,223 @@ class MainWindow(QMainWindow):
             )
         return rms_list, dynamic_threshold_db, vad_mask
 
+    def _on_recommend_params(self):
+        if self.processing:
+            self._warningProcessNotFinished()
+            return
+        item = self.ui.lwTaskList.currentItem()
+        if item is None and self.ui.lwTaskList.count() > 0:
+            item = self.ui.lwTaskList.item(0)
+        if item is None:
+            QMessageBox.information(
+                self,
+                QApplication.applicationName(),
+                i18n.text("recommend_no_selection", self.current_language),
+            )
+            return
+        filename = item.data(Qt.ItemDataRole.UserRole + 1)
+        if not filename:
+            return
+        audio, sr = self._read_audio_for_analysis(filename)
+        if audio is None or sr is None:
+            QMessageBox.warning(
+                self,
+                i18n.text("warning_title", self.current_language),
+                i18n.text("recommend_failed", self.current_language),
+            )
+            return
+        rec = self._compute_recommendations(audio, sr)
+        msg = self._format_recommend_message(rec)
+        ret = QMessageBox.question(
+            self,
+            i18n.text("recommend_title", self.current_language),
+            msg,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes,
+        )
+        if ret != QMessageBox.Yes:
+            return
+        self._apply_recommendations(rec)
+
+    def _read_audio_for_analysis(self, filename: str):
+        try:
+            audio, sr = soundfile.read(filename, dtype=np.float32)
+            return audio, sr
+        except Exception as exc:
+            choice = self._show_fallback_dialog("process_read_failed", filename, str(exc))
+            if choice == "ffmpeg":
+                return self._read_audio_with_ffmpeg(filename)
+            if choice == "librosa":
+                return self._read_audio_with_librosa(filename)
+        return None, None
+
+    def _read_audio_with_ffmpeg(self, filename: str):
+        ffmpeg_path = resolve_ffmpeg_path()
+        if not ffmpeg_path:
+            return None, None
+        with tempfile.NamedTemporaryFile(
+            prefix="audio_slicer_recommend_",
+            suffix=".wav",
+            delete=False,
+        ) as tmp:
+            temp_path = tmp.name
+        try:
+            result = subprocess.run(
+                [
+                    ffmpeg_path,
+                    "-y",
+                    "-i",
+                    filename,
+                    "-vn",
+                    "-acodec",
+                    "pcm_s16le",
+                    temp_path,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                return None, None
+            audio, sr = soundfile.read(temp_path, dtype=np.float32)
+            return audio, sr
+        finally:
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
+    def _read_audio_with_librosa(self, filename: str):
+        try:
+            import librosa
+        except Exception:
+            return None, None
+        try:
+            audio, sr = librosa.load(filename, sr=None, mono=False)
+            return audio, sr
+        except Exception:
+            return None, None
+
+    def _compute_recommendations(self, audio: np.ndarray, sr: int) -> dict:
+        if audio.ndim > 1:
+            samples = audio.mean(axis=0)
+        else:
+            samples = audio
+        duration_sec = len(samples) / max(sr, 1)
+        hop_ms = 20 if duration_sec > 1200 else 10
+        hop_length = max(1, int(sr * hop_ms / 1000))
+        win_length = max(hop_length, min(int(sr * 0.03), 4 * hop_length))
+        rms_list = get_rms(y=samples, frame_length=win_length, hop_length=hop_length).squeeze(0)
+        rms_db = 20 * np.log10(np.clip(rms_list, a_min=1e-12, a_max=None))
+        noise_floor = float(np.percentile(rms_db, 20))
+        threshold_db = float(np.clip(noise_floor + 6.0, -80.0, -10.0))
+
+        silent = rms_db < threshold_db
+        silent_lengths = self._collect_run_lengths(silent)
+        voice_lengths = self._collect_run_lengths(~silent)
+        sil_ms = [int(length * hop_ms) for length in silent_lengths] if silent_lengths else []
+        voice_ms = [int(length * hop_ms) for length in voice_lengths] if voice_lengths else []
+
+        min_interval = int(np.clip(np.percentile(sil_ms, 50), 200, 1200)) if sil_ms else 300
+        max_silence = int(np.clip(np.percentile(sil_ms, 90), 500, 5000)) if sil_ms else 1000
+        min_length = int(np.clip(np.percentile(voice_ms, 20), 500, 8000)) if voice_ms else 5000
+        min_interval = max(min_interval, hop_ms)
+        max_silence = max(max_silence, hop_ms)
+        min_length = max(min_length, min_interval)
+
+        parallel_mode = "thread" if self.ui.lwTaskList.count() > 1 else "single"
+        parallel_jobs = min(4, max(1, (os.cpu_count() or 1)))
+
+        return {
+            "threshold_db": round(threshold_db, 1),
+            "min_length": min_length,
+            "min_interval": min_interval,
+            "hop_size": hop_ms,
+            "max_silence": max_silence,
+            "dynamic_enabled": True,
+            "dynamic_offset_db": 6.0,
+            "vad_enabled": True,
+            "vad_sensitivity_db": 6.0,
+            "vad_hangover_ms": 120,
+            "parallel_mode": parallel_mode,
+            "parallel_jobs": parallel_jobs,
+            "fallback_mode": "ffmpeg_then_librosa",
+        }
+
+    def _collect_run_lengths(self, mask: np.ndarray) -> list[int]:
+        lengths = []
+        count = 0
+        for value in mask:
+            if value:
+                count += 1
+            elif count:
+                lengths.append(count)
+                count = 0
+        if count:
+            lengths.append(count)
+        return lengths
+
+    def _format_recommend_message(self, rec: dict) -> str:
+        lang = self.current_language
+        enabled = i18n.text("recommend_enabled", lang)
+        disabled = i18n.text("recommend_disabled", lang)
+        dyn_text = enabled if rec["dynamic_enabled"] else disabled
+        vad_text = enabled if rec["vad_enabled"] else disabled
+        parallel_text = {
+            "single": i18n.text("parallel_mode_single", lang),
+            "thread": i18n.text("parallel_mode_thread", lang),
+            "process": i18n.text("parallel_mode_process", lang),
+        }.get(rec["parallel_mode"], rec["parallel_mode"])
+        fallback_text = {
+            "ask": i18n.text("fallback_mode_ask", lang),
+            "ffmpeg_then_librosa": i18n.text("fallback_mode_ffmpeg_then_librosa", lang),
+            "ffmpeg": i18n.text("fallback_mode_ffmpeg", lang),
+            "librosa": i18n.text("fallback_mode_librosa", lang),
+            "skip": i18n.text("fallback_mode_skip", lang),
+        }.get(rec["fallback_mode"], rec["fallback_mode"])
+        return i18n.text("recommend_message", lang).format(
+            threshold=rec["threshold_db"],
+            min_length=rec["min_length"],
+            min_interval=rec["min_interval"],
+            hop_size=rec["hop_size"],
+            max_silence=rec["max_silence"],
+            dynamic_enabled=dyn_text,
+            dynamic_offset=rec["dynamic_offset_db"],
+            vad_enabled=vad_text,
+            vad_sensitivity=rec["vad_sensitivity_db"],
+            vad_hangover=rec["vad_hangover_ms"],
+            parallel_mode=parallel_text,
+            parallel_jobs=rec["parallel_jobs"],
+            fallback_mode=fallback_text,
+        )
+
+    def _apply_recommendations(self, rec: dict):
+        self.ui.leThreshold.setText(str(rec["threshold_db"]))
+        self.ui.leMinLen.setText(str(rec["min_length"]))
+        self.ui.leMinInterval.setText(str(rec["min_interval"]))
+        self.ui.leHopSize.setText(str(rec["hop_size"]))
+        self.ui.leMaxSilence.setText(str(rec["max_silence"]))
+        self.ui.cbxDynamicThreshold.setChecked(bool(rec["dynamic_enabled"]))
+        self.ui.leDynamicOffset.setText(str(rec["dynamic_offset_db"]))
+        self.ui.cbxVAD.setChecked(bool(rec["vad_enabled"]))
+        self.ui.leVADSensitivity.setText(str(rec["vad_sensitivity_db"]))
+        self.ui.leVADHangover.setText(str(rec["vad_hangover_ms"]))
+        idx = self.ui.cbParallelMode.findData(rec["parallel_mode"])
+        if idx >= 0:
+            self.ui.cbParallelMode.setCurrentIndex(idx)
+        self.ui.sbParallelJobs.setValue(int(rec["parallel_jobs"]))
+        idx = self.ui.cbFallbackMode.findData(rec["fallback_mode"])
+        if idx >= 0:
+            self.ui.cbFallbackMode.setCurrentIndex(idx)
+
     def _set_preview_image(self, image_path: str):
-        self._preview_pixmap_path = image_path
-        self._update_preview_pixmap()
+        if self._preview_embed:
+            self._preview_pixmap_path = image_path
+            self._update_preview_pixmap()
+            return
+        self._show_preview_window(image_path)
 
     def _update_preview_pixmap(self):
-        if not self._preview_pixmap_path:
+        if not self._preview_pixmap_path or not self._preview_embed:
             return
         pixmap = QPixmap(self._preview_pixmap_path)
         if pixmap.isNull():
@@ -896,6 +1528,77 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._update_preview_pixmap()
+
+    def eventFilter(self, obj, event):
+        if obj is self._preview_scroll_viewport and event.type() == QEvent.Wheel:
+            if self._preview_zoom_slider:
+                delta = event.angleDelta().y()
+                if delta != 0:
+                    step = 10 if abs(delta) >= 120 else 5
+                    value = self._preview_zoom_slider.value() + (step if delta > 0 else -step)
+                    value = max(self._preview_zoom_slider.minimum(), min(self._preview_zoom_slider.maximum(), value))
+                    self._preview_zoom_slider.setValue(value)
+                return True
+        return super().eventFilter(obj, event)
+
+    def _show_preview_window(self, image_path: str):
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            return
+        if self._preview_window is None:
+            self._preview_window = QDialog(self)
+            if self._style_sheet:
+                self._preview_window.setStyleSheet(self._style_sheet)
+            self._preview_window.setWindowTitle(i18n.text("preview", self.current_language))
+            self._preview_window.setModal(False)
+            layout = QVBoxLayout(self._preview_window)
+            layout.setContentsMargins(10, 10, 10, 10)
+            zoom_row = QHBoxLayout()
+            self._preview_zoom_label = QLabel(i18n.text("preview_zoom", self.current_language), self._preview_window)
+            self._preview_zoom_slider = QSlider(Qt.Horizontal, self._preview_window)
+            self._preview_zoom_slider.setRange(25, 400)
+            self._preview_zoom_slider.setValue(100)
+            self._preview_zoom_value = QLabel("100%", self._preview_window)
+            zoom_row.addWidget(self._preview_zoom_label)
+            zoom_row.addWidget(self._preview_zoom_slider, 1)
+            zoom_row.addWidget(self._preview_zoom_value)
+            layout.addLayout(zoom_row)
+            scroll = QScrollArea(self._preview_window)
+            scroll.setWidgetResizable(True)
+            self._preview_label = QLabel(scroll)
+            self._preview_label.setAlignment(Qt.AlignCenter)
+            self._preview_label.setScaledContents(False)
+            scroll.setWidget(self._preview_label)
+            layout.addWidget(scroll)
+            self._preview_zoom_slider.valueChanged.connect(self._on_preview_zoom_changed)
+            self._preview_scroll_viewport = scroll.viewport()
+            if self._preview_scroll_viewport:
+                self._preview_scroll_viewport.installEventFilter(self)
+        else:
+            self._preview_window.setWindowTitle(i18n.text("preview", self.current_language))
+        self._preview_original_pixmap = pixmap
+        if self._preview_zoom_slider:
+            self._preview_zoom_slider.setValue(100)
+        self._update_preview_zoom()
+        target_width = min(1400, pixmap.width() + 40)
+        target_height = min(900, pixmap.height() + 60)
+        self._preview_window.resize(target_width, target_height)
+        self._preview_window.show()
+        self._preview_window.raise_()
+        self._preview_window.activateWindow()
+
+    def _on_preview_zoom_changed(self, value: int):
+        if self._preview_zoom_value:
+            self._preview_zoom_value.setText(f"{value}%")
+        self._update_preview_zoom()
+
+    def _update_preview_zoom(self):
+        if not self._preview_label or not self._preview_original_pixmap or not self._preview_zoom_slider:
+            return
+        scale = self._preview_zoom_slider.value() / 100.0
+        target_size = self._preview_original_pixmap.size() * scale
+        scaled = self._preview_original_pixmap.scaled(target_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self._preview_label.setPixmap(scaled)
 
     def _on_preview_selection(self):
         if self.processing:
@@ -998,40 +1701,46 @@ class MainWindow(QMainWindow):
             delete=False,
         ) as tmp:
             temp_path = tmp.name
-        result = subprocess.run(
-            [
-                ffmpeg_path,
-                "-y",
-                "-i",
-                filename,
-                "-vn",
-                "-acodec",
-                "pcm_s16le",
-                temp_path,
-            ],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            QMessageBox.warning(
-                self,
-                i18n.text("warning_title", self.current_language),
-                i18n.text("ffmpeg_failed", self.current_language).format(
-                    error=result.stderr.strip() or result.stdout.strip(),
-                ),
-            )
-            return
         try:
-            self._preview_with_file(temp_path)
-        except Exception as exc:
-            QMessageBox.warning(
-                self,
-                i18n.text("warning_title", self.current_language),
-                i18n.text("read_failed", self.current_language).format(
-                    file=filename,
-                    error=str(exc),
-                ),
+            result = subprocess.run(
+                [
+                    ffmpeg_path,
+                    "-y",
+                    "-i",
+                    filename,
+                    "-vn",
+                    "-acodec",
+                    "pcm_s16le",
+                    temp_path,
+                ],
+                capture_output=True,
+                text=True,
             )
+            if result.returncode != 0:
+                QMessageBox.warning(
+                    self,
+                    i18n.text("warning_title", self.current_language),
+                    i18n.text("ffmpeg_failed", self.current_language).format(
+                        error=result.stderr.strip() or result.stdout.strip(),
+                    ),
+                )
+                return
+            try:
+                self._preview_with_file(temp_path)
+            except Exception as exc:
+                QMessageBox.warning(
+                    self,
+                    i18n.text("warning_title", self.current_language),
+                    i18n.text("read_failed", self.current_language).format(
+                        file=filename,
+                        error=str(exc),
+                    ),
+                )
+        finally:
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
     def _preview_with_librosa(self, filename: str):
         try:
@@ -1059,7 +1768,13 @@ class MainWindow(QMainWindow):
             ) as tmp:
                 temp_path = tmp.name
             soundfile.write(temp_path, audio_to_write, sr)
-            self._preview_with_file(temp_path)
+            try:
+                self._preview_with_file(temp_path)
+            finally:
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
         except Exception as exc:
             QMessageBox.warning(
                 self,

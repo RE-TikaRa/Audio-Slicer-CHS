@@ -33,30 +33,30 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "Tagliatore audio",
     },
     "add_files": {
-        "en": "Add Audio Files...",
-        "zh-CN": "添加音频文件...",
-        "zh-TW": "新增音訊檔案...",
-        "ja": "音声ファイルを追加...",
-        "ko": "오디오 파일 추가...",
-        "fr": "Ajouter des fichiers audio...",
-        "de": "Audiodateien hinzufügen...",
-        "es": "Agregar archivos de audio...",
-        "ru": "Добавить аудиофайлы...",
-        "pt-BR": "Adicionar arquivos de áudio...",
-        "it": "Aggiungi file audio...",
+        "en": "Add Audio Files",
+        "zh-CN": "添加音频文件",
+        "zh-TW": "新增音訊檔案",
+        "ja": "音声ファイルを追加",
+        "ko": "오디오 파일 추가",
+        "fr": "Ajouter des fichiers audio",
+        "de": "Audiodateien hinzufügen",
+        "es": "Agregar archivos de audio",
+        "ru": "Добавить аудиофайлы",
+        "pt-BR": "Adicionar arquivos de áudio",
+        "it": "Aggiungi file audio",
     },
     "about": {
-        "en": "About...",
-        "zh-CN": "关于...",
-        "zh-TW": "關於...",
-        "ja": "情報...",
-        "ko": "정보...",
-        "fr": "À propos...",
-        "de": "Info...",
-        "es": "Acerca de...",
-        "ru": "О программе...",
-        "pt-BR": "Sobre...",
-        "it": "Informazioni...",
+        "en": "About",
+        "zh-CN": "关于",
+        "zh-TW": "關於",
+        "ja": "情報",
+        "ko": "정보",
+        "fr": "À propos",
+        "de": "Info",
+        "es": "Acerca de",
+        "ru": "О программе",
+        "pt-BR": "Sobre",
+        "it": "Informazioni",
     },
     "task_list": {
         "en": "Task List",
@@ -110,6 +110,264 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt-BR": "Configurações",
         "it": "Impostazioni",
     },
+    "recommend_label": {
+        "en": "Smart Recommend",
+        "zh-CN": "智能推荐",
+        "zh-TW": "智慧推薦",
+        "ja": "自動推薦",
+        "ko": "자동 추천",
+        "fr": "Recommandation",
+        "de": "Empfehlung",
+        "es": "Recomendación",
+        "ru": "Рекомендация",
+        "pt-BR": "Recomendação",
+        "it": "Raccomandazione",
+    },
+    "recommend_button": {
+        "en": "Generate",
+        "zh-CN": "生成推荐",
+        "zh-TW": "生成推薦",
+        "ja": "生成",
+        "ko": "생성",
+        "fr": "Générer",
+        "de": "Erzeugen",
+        "es": "Generar",
+        "ru": "Сгенерировать",
+        "pt-BR": "Gerar",
+        "it": "Genera",
+    },
+    "recommend_title": {
+        "en": "Recommended Parameters",
+        "zh-CN": "参数推荐",
+        "zh-TW": "參數推薦",
+        "ja": "推奨パラメータ",
+        "ko": "추천 매개변수",
+        "fr": "Paramètres recommandés",
+        "de": "Empfohlene Parameter",
+        "es": "Parámetros recomendados",
+        "ru": "Рекомендуемые параметры",
+        "pt-BR": "Parâmetros recomendados",
+        "it": "Parametri consigliati",
+    },
+    "recommend_message": {
+        "en": "Recommended parameters:\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "Apply these settings?",
+        "zh-CN": "根据所选音频生成推荐参数：\n"
+                 "Threshold: {threshold} dB\n"
+                 "Minimum Length: {min_length} ms\n"
+                 "Minimum Interval: {min_interval} ms\n"
+                 "Hop Size: {hop_size} ms\n"
+                 "Maximum Silence Length: {max_silence} ms\n"
+                 "Dynamic Threshold: {dynamic_enabled}\n"
+                 "Dynamic Offset: {dynamic_offset} dB\n"
+                 "VAD: {vad_enabled}\n"
+                 "VAD Sensitivity: {vad_sensitivity} dB\n"
+                 "VAD Hangover: {vad_hangover} ms\n"
+                 "Parallel Mode: {parallel_mode}\n"
+                 "Parallel Jobs: {parallel_jobs}\n"
+                 "Decode Fallback: {fallback_mode}\n\n"
+                 "是否应用？",
+        "zh-TW": "根據所選音訊生成推薦參數：\n"
+                 "Threshold: {threshold} dB\n"
+                 "Minimum Length: {min_length} ms\n"
+                 "Minimum Interval: {min_interval} ms\n"
+                 "Hop Size: {hop_size} ms\n"
+                 "Maximum Silence Length: {max_silence} ms\n"
+                 "Dynamic Threshold: {dynamic_enabled}\n"
+                 "Dynamic Offset: {dynamic_offset} dB\n"
+                 "VAD: {vad_enabled}\n"
+                 "VAD Sensitivity: {vad_sensitivity} dB\n"
+                 "VAD Hangover: {vad_hangover} ms\n"
+                 "Parallel Mode: {parallel_mode}\n"
+                 "Parallel Jobs: {parallel_jobs}\n"
+                 "Decode Fallback: {fallback_mode}\n\n"
+                 "是否套用？",
+        "ja": "選択した音声から推奨パラメータを生成しました：\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "適用しますか？",
+        "ko": "선택한 오디오로 추천 파라미터를 생성했습니다:\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "적용할까요?",
+        "fr": "Paramètres recommandés :\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "Appliquer ces paramètres ?",
+        "de": "Empfohlene Parameter:\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "Diese Einstellungen anwenden?",
+        "es": "Parámetros recomendados:\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "¿Aplicar estos ajustes?",
+        "ru": "Рекомендуемые параметры:\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "Применить эти настройки?",
+        "pt-BR": "Parâmetros recomendados:\n"
+                 "Threshold: {threshold} dB\n"
+                 "Minimum Length: {min_length} ms\n"
+                 "Minimum Interval: {min_interval} ms\n"
+                 "Hop Size: {hop_size} ms\n"
+                 "Maximum Silence Length: {max_silence} ms\n"
+                 "Dynamic Threshold: {dynamic_enabled}\n"
+                 "Dynamic Offset: {dynamic_offset} dB\n"
+                 "VAD: {vad_enabled}\n"
+                 "VAD Sensitivity: {vad_sensitivity} dB\n"
+                 "VAD Hangover: {vad_hangover} ms\n"
+                 "Parallel Mode: {parallel_mode}\n"
+                 "Parallel Jobs: {parallel_jobs}\n"
+                 "Decode Fallback: {fallback_mode}\n\n"
+                 "Aplicar estas configurações?",
+        "it": "Parametri consigliati:\n"
+              "Threshold: {threshold} dB\n"
+              "Minimum Length: {min_length} ms\n"
+              "Minimum Interval: {min_interval} ms\n"
+              "Hop Size: {hop_size} ms\n"
+              "Maximum Silence Length: {max_silence} ms\n"
+              "Dynamic Threshold: {dynamic_enabled}\n"
+              "Dynamic Offset: {dynamic_offset} dB\n"
+              "VAD: {vad_enabled}\n"
+              "VAD Sensitivity: {vad_sensitivity} dB\n"
+              "VAD Hangover: {vad_hangover} ms\n"
+              "Parallel Mode: {parallel_mode}\n"
+              "Parallel Jobs: {parallel_jobs}\n"
+              "Decode Fallback: {fallback_mode}\n\n"
+              "Applicare queste impostazioni?",
+    },
+    "recommend_no_selection": {
+        "en": "Please select an audio file in the task list.",
+        "zh-CN": "请先在任务列表中选择一个音频文件。",
+        "zh-TW": "請先在工作列表中選擇一個音訊檔案。",
+        "ja": "タスクリストから音声ファイルを選択してください。",
+        "ko": "작업 목록에서 오디오 파일을 선택하세요.",
+        "fr": "Veuillez sélectionner un fichier audio dans la liste.",
+        "de": "Bitte eine Audiodatei in der Liste auswählen.",
+        "es": "Selecciona un archivo de audio en la lista.",
+        "ru": "Пожалуйста, выберите аудиофайл в списке.",
+        "pt-BR": "Selecione um arquivo de áudio na lista.",
+        "it": "Seleziona un file audio nell'elenco.",
+    },
+    "recommend_failed": {
+        "en": "Failed to analyze this file.",
+        "zh-CN": "分析该文件失败。",
+        "zh-TW": "分析此檔案失敗。",
+        "ja": "ファイルの解析に失敗しました。",
+        "ko": "파일 분석에 실패했습니다.",
+        "fr": "Échec de l’analyse du fichier.",
+        "de": "Dateianalyse fehlgeschlagen.",
+        "es": "No se pudo analizar el archivo.",
+        "ru": "Не удалось проанализировать файл.",
+        "pt-BR": "Falha ao analisar o arquivo.",
+        "it": "Analisi del file non riuscita.",
+    },
+    "recommend_enabled": {
+        "en": "On",
+        "zh-CN": "开启",
+        "zh-TW": "開啟",
+        "ja": "オン",
+        "ko": "켬",
+        "fr": "Activé",
+        "de": "Ein",
+        "es": "Activado",
+        "ru": "Вкл",
+        "pt-BR": "Ativado",
+        "it": "Attivo",
+    },
+    "recommend_disabled": {
+        "en": "Off",
+        "zh-CN": "关闭",
+        "zh-TW": "關閉",
+        "ja": "オフ",
+        "ko": "끔",
+        "fr": "Désactivé",
+        "de": "Aus",
+        "es": "Desactivado",
+        "ru": "Выкл",
+        "pt-BR": "Desativado",
+        "it": "Disattivo",
+    },
     "settings_basic": {
         "en": "Basic",
         "zh-CN": "基础",
@@ -135,6 +393,58 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Дополнительно",
         "pt-BR": "Avançado",
         "it": "Avanzato",
+    },
+    "advanced_group_presets": {
+        "en": "Presets",
+        "zh-CN": "预设",
+        "zh-TW": "預設",
+        "ja": "プリセット",
+        "ko": "프리셋",
+        "fr": "Préréglages",
+        "de": "Voreinstellungen",
+        "es": "Preajustes",
+        "ru": "Пресеты",
+        "pt-BR": "Predefinições",
+        "it": "Preimpostazioni",
+    },
+    "advanced_group_naming": {
+        "en": "Naming & Export",
+        "zh-CN": "命名与导出",
+        "zh-TW": "命名與匯出",
+        "ja": "命名とエクスポート",
+        "ko": "이름/내보내기",
+        "fr": "Nom & Export",
+        "de": "Benennung & Export",
+        "es": "Nombre y exportación",
+        "ru": "Имена и экспорт",
+        "pt-BR": "Nomeação e exportação",
+        "it": "Nome ed esportazione",
+    },
+    "advanced_group_detection": {
+        "en": "Detection",
+        "zh-CN": "检测",
+        "zh-TW": "偵測",
+        "ja": "検出",
+        "ko": "감지",
+        "fr": "Détection",
+        "de": "Erkennung",
+        "es": "Detección",
+        "ru": "Детекция",
+        "pt-BR": "Detecção",
+        "it": "Rilevamento",
+    },
+    "advanced_group_performance": {
+        "en": "Performance",
+        "zh-CN": "性能",
+        "zh-TW": "效能",
+        "ja": "パフォーマンス",
+        "ko": "성능",
+        "fr": "Performance",
+        "de": "Leistung",
+        "es": "Rendimiento",
+        "ru": "Производительность",
+        "pt-BR": "Desempenho",
+        "it": "Prestazioni",
     },
     "threshold": {
         "en": "Threshold (dB)",
@@ -228,17 +538,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "Cartella di output (predefinita come l'audio)",
     },
     "browse": {
-        "en": "Browse...",
-        "zh-CN": "浏览...",
-        "zh-TW": "瀏覽...",
-        "ja": "参照...",
-        "ko": "찾아보기...",
-        "fr": "Parcourir...",
-        "de": "Durchsuchen...",
-        "es": "Examinar...",
-        "ru": "Обзор...",
-        "pt-BR": "Procurar...",
-        "it": "Sfoglia...",
+        "en": "Browse",
+        "zh-CN": "浏览",
+        "zh-TW": "瀏覽",
+        "ja": "参照",
+        "ko": "찾아보기",
+        "fr": "Parcourir",
+        "de": "Durchsuchen",
+        "es": "Examinar",
+        "ru": "Обзор",
+        "pt-BR": "Procurar",
+        "it": "Sfoglia",
     },
     "open_output_directory": {
         "en": "Open output directory when finished",
@@ -292,6 +602,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "pt-BR": "Sem prévia",
         "it": "Nessuna anteprima",
     },
+    "preview_zoom": {
+        "en": "Zoom",
+        "zh-CN": "缩放",
+        "zh-TW": "縮放",
+        "ja": "ズーム",
+        "ko": "확대/축소",
+        "fr": "Zoom",
+        "de": "Zoom",
+        "es": "Zoom",
+        "ru": "Масштаб",
+        "pt-BR": "Zoom",
+        "it": "Zoom",
+    },
     "presets": {
         "en": "Presets",
         "zh-CN": "预设",
@@ -306,17 +629,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "Preimpostazioni",
     },
     "preset_select": {
-        "en": "Select preset...",
-        "zh-CN": "选择预设…",
-        "zh-TW": "選擇預設…",
-        "ja": "プリセットを選択…",
-        "ko": "프리셋 선택…",
-        "fr": "Sélectionner un préréglage…",
-        "de": "Voreinstellung wählen…",
-        "es": "Seleccionar preajuste…",
-        "ru": "Выбрать пресет…",
-        "pt-BR": "Selecionar predefinição…",
-        "it": "Seleziona preimpostazione…",
+        "en": "Select preset",
+        "zh-CN": "选择预设",
+        "zh-TW": "選擇預設",
+        "ja": "プリセットを選択",
+        "ko": "프리셋 선택",
+        "fr": "Sélectionner un préréglage",
+        "de": "Voreinstellung wählen",
+        "es": "Seleccionar preajuste",
+        "ru": "Выбрать пресет",
+        "pt-BR": "Selecionar predefinição",
+        "it": "Seleziona preimpostazione",
     },
     "preset_save": {
         "en": "Save",
@@ -343,6 +666,71 @@ STRINGS: dict[str, dict[str, str]] = {
         "ru": "Удалить",
         "pt-BR": "Excluir",
         "it": "Elimina",
+    },
+    "preset_reset": {
+        "en": "Reset",
+        "zh-CN": "恢复默认",
+        "zh-TW": "恢復預設",
+        "ja": "リセット",
+        "ko": "재설정",
+        "fr": "Réinitialiser",
+        "de": "Zurücksetzen",
+        "es": "Restablecer",
+        "ru": "Сбросить",
+        "pt-BR": "Redefinir",
+        "it": "Ripristina",
+    },
+    "preset_reset_title": {
+        "en": "Reset Presets",
+        "zh-CN": "恢复默认预设",
+        "zh-TW": "恢復預設",
+        "ja": "プリセットをリセット",
+        "ko": "프리셋 재설정",
+        "fr": "Réinitialiser les préréglages",
+        "de": "Voreinstellungen zurücksetzen",
+        "es": "Restablecer preajustes",
+        "ru": "Сбросить пресеты",
+        "pt-BR": "Redefinir predefinições",
+        "it": "Ripristina preimpostazioni",
+    },
+    "preset_reset_confirm": {
+        "en": "This will overwrite all presets and restore the defaults. Continue?",
+        "zh-CN": "将覆盖所有预设并恢复为默认值，是否继续？",
+        "zh-TW": "將覆蓋所有預設並恢復為預設值，是否繼續？",
+        "ja": "すべてのプリセットを上書きして既定に戻します。続行しますか？",
+        "ko": "모든 프리셋을 덮어쓰고 기본값으로 되돌립니다. 계속할까요?",
+        "fr": "Tous les préréglages seront remplacés par les valeurs par défaut. Continuer ?",
+        "de": "Alle Voreinstellungen werden überschrieben und auf Standard zurückgesetzt. Fortfahren?",
+        "es": "Se sobrescribirán todos los preajustes y se restaurarán los valores predeterminados. ¿Continuar?",
+        "ru": "Все пресеты будут перезаписаны и восстановлены по умолчанию. Продолжить?",
+        "pt-BR": "Todas as predefinições serão substituídas e restauradas para o padrão. Continuar?",
+        "it": "Tutti i preset verranno sovrascritti e ripristinati ai valori predefiniti. Continuare?",
+    },
+    "preset_reset_done_title": {
+        "en": "Presets Reset",
+        "zh-CN": "恢复完成",
+        "zh-TW": "恢復完成",
+        "ja": "リセット完了",
+        "ko": "재설정 완료",
+        "fr": "Réinitialisation terminée",
+        "de": "Zurücksetzung abgeschlossen",
+        "es": "Restablecimiento completado",
+        "ru": "Сброс завершён",
+        "pt-BR": "Redefinição concluída",
+        "it": "Ripristino completato",
+    },
+    "preset_reset_done": {
+        "en": "Presets have been restored to the defaults.",
+        "zh-CN": "预设已恢复为默认值。",
+        "zh-TW": "預設已恢復為預設值。",
+        "ja": "プリセットを既定値に戻しました。",
+        "ko": "프리셋이 기본값으로 복원되었습니다.",
+        "fr": "Les préréglages ont été restaurés par défaut.",
+        "de": "Voreinstellungen wurden auf Standard zurückgesetzt.",
+        "es": "Los preajustes se restauraron a los valores predeterminados.",
+        "ru": "Пресеты восстановлены по умолчанию.",
+        "pt-BR": "As predefinições foram restauradas para o padrão.",
+        "it": "I preset sono stati ripristinati ai valori predefiniti.",
     },
     "preset_save_title": {
         "en": "Save Preset",
@@ -670,17 +1058,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "Avvia",
     },
     "slicing": {
-        "en": "Slicing...",
-        "zh-CN": "切片中...",
-        "zh-TW": "切片中...",
-        "ja": "切り出し中...",
-        "ko": "분할 중...",
-        "fr": "Découpage...",
-        "de": "Schneide...",
-        "es": "Cortando...",
-        "ru": "Нарезка...",
-        "pt-BR": "Cortando...",
-        "it": "Taglio...",
+        "en": "Slicing",
+        "zh-CN": "切片中",
+        "zh-TW": "切片中",
+        "ja": "切り出し中",
+        "ko": "분할 중",
+        "fr": "Découpage",
+        "de": "Schneide",
+        "es": "Cortando",
+        "ru": "Нарезка",
+        "pt-BR": "Cortando",
+        "it": "Taglio",
     },
     "about_text": {
         "en": "Audio Slicer v{version}\nCopyright 2020-2026 OpenVPI Team\nLanguage: {language}\nLocalization by Re-TikaRa",

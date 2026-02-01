@@ -2,6 +2,11 @@ import soundfile
 import numpy as np
 import matplotlib.pyplot as plt
 
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "Arial Unicode MS", "DejaVu Sans"]
+plt.rcParams["font.family"] = "sans-serif"
+plt.rcParams["axes.unicode_minus"] = False
+plt.rcParams["mathtext.fontset"] = "stix"
+
 from audio_slicer.utils.audioutil import AudioUtil
 
 dark_theme_palette = {
@@ -119,18 +124,20 @@ class SlicingPreview:
             ori_audio = ori_audio.T
             ori_audio = AudioUtil.to_mono(ori_audio)
 
+        self.duration_ms = (ori_audio.shape[-1] / ori_sr) * 1000.0
+
         # Downsample audio before plotting due to performance issue
         target_sr = 6000
         self.target_sr = target_sr
         self.audio_samples = AudioUtil.resample(y=ori_audio, orig_sr=ori_sr, target_sr=target_sr, res_type="soxr_hq")
 
     def _apply_slice(self, begin, end):
-        return [begin * self.hop_size,
-                min(self.waveform_shape, end * self.hop_size)]
+        end_ms = end * self.hop_size
+        return [begin * self.hop_size, min(self.duration_ms, end_ms)]
 
     def _get_ranges(self, sil_tags: list):
         if len(sil_tags) == 0:
-            return []
+            return [[0, self.duration_ms]]
         else:
             ranges = []
             if sil_tags[0][0] > 0:
