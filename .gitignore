@@ -114,6 +114,9 @@ venv.bak/
 # Logs
 log/
 
+# App runtime artifacts
+preview.png
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -140,3 +143,6 @@ dmypy.json
 
 # VSCode
 /.vscode/
+
+# Codemap
+.codemap/
