@@ -1,82 +1,86 @@
-# Audio Slicer
+# 音频切片机
+一个简约的 GUI 应用程序，通过静音检测对音频进行切片。
 
-A simple GUI application that slices audio with silence detection.
+[English README](./README.en.md)
 
-[中文文档](./README.zh-CN.md)
-
-## Screenshots
+## 截图
 
 ![image](./assets/screenshot_1.jpg)
 
-## Usage
+## 功能
+
+- 基于静音检测的自动切片
+- 预览切片区间与长度分布图
+- 输出格式：wav / flac / mp3
+- 多语言界面
+- 支持拖拽导入音频
+
+## 快速开始
 
 ### Windows
 
-- Download and extract the latest release [here](https://github.com/flutydeer/audio-slicer/releases).
+- 发行版：在 GitHub Release 中下载并解压后运行 `slicer-gui.exe`。
+- 源码运行：双击根目录的 `main.bat`。
 
-- Run "slicer-gui.exe".
-
-### MacOS & Linux
-
-- Clone the repository.
-
-- Install dependencies (Python 3.13+ recommended):
+### macOS & Linux
 
 ```shell
 uv sync
-```
-
-- Run the following command to launch GUI:
-
-```Shell
 uv run python scripts/slicer-gui.py
 ```
-
-Just simply add your audio files to the task list by clicking the "Add Audio Files..." button or dragging and drop them to the window, click the "Start" button and wait for it to finish. The progress bar cannot indicate the progress of individual tasks, so it keeps 0% until finished when there is only 1 task in the task list.
-
-### CLI
+### 命令行
 
 ```shell
 uv run python scripts/slicer.py path/to/audio.wav
 ```
 
-### Localization
+## 使用说明
 
-The GUI includes multiple common languages. You can switch the language from the Settings panel.
-## Algorithm
+- 通过“Add Audio Files...”按钮或拖拽添加音频文件。
+- 参数设置在右侧 Settings 面板内。
+- 语言切换：主界面右侧 Settings 的 Language 下拉框。
+- 勾选“Open output directory when finished”可在完成后自动打开输出目录。
 
-### Silence detection
+## 参数说明
 
-This application uses RMS (root mean score) to measure the quiteness of the audio and detect silent parts. RMS values of each frame (frame length set as **hop size**) are calculated and all frames with an RMS below the **threshold** will be regarded as silent frames.
+- Threshold（阈值）：RMS 低于此值的区域视为静音，默认 -40 dB。
+- Minimum Length（最小长度）：每个切片的最小长度（ms），默认 5000。
+- Minimum Interval（最小间隔）：静音段最小长度（ms），默认 300。
+- Hop Size（步长）：RMS 帧长度（ms），默认 10。
+- Maximum Silence Length（最大静音长度）：切片两端保留的最大静音长度（ms），默认 1000。
 
-### Audio slicing
+## 项目结构
 
-Once the valid (sound) part reached **min length** since last slice and a silent part longer than **min interval** are detected, the audio will be sliced apart from the frame(s) with the lowest RMS value within the silent area. Long silence parts may be deleted.
+- `src/audio_slicer/`：核心代码
+  - `gui/`：主窗口与 UI
+  - `utils/`：切片与预览工具
+  - `modules/`：多语言文本
+- `scripts/`：运行入口脚本
+- `tools/`：打包与版本信息
+- `assets/`：截图与 UI 文件
+## 打包（Windows）
 
+```pwsh
+pwsh tools/pack-gui.ps1
+```
 
+输出目录：`dist/slicer-gui`，压缩包：`dist/slicer-gui-windows.zip`。
 
-## Parameters
+## 故障排查
 
-### Threshold
+- 出现 `Illegal Audio-MPEG-Header` 等 mpg123 错误：
+  - 多见于损坏/非标准音频或扩展名与实际编码不一致。
+  - 建议用 ffmpeg 转为 WAV/FLAC 后再切片。
 
-The RMS threshold presented in dB. Areas where all RMS values are below this threshold will be regarded as silence. Increase this value if your audio is noisy. Defaults to -40.
+- 预览失败或切片失败：
+  - 请确认文件可被正常解码（能被其他播放器正常播放）。
 
-### Minimum Length
+日志会写入根目录 `log/` 目录，便于排查问题。
 
-The minimum length required for each sliced audio clip, presented in milliseconds. Defaults to 5000.
+## 许可
 
-### Minimum Interval
+本项目遵循仓库中的 LICENSE。
 
-The minimum length for a silence part to be sliced, presented in milliseconds. Set this value smaller if your audio contains only short breaks. The smaller this value is, the more sliced audio clips this application is likely to generate. Note that this value must be smaller than min_length and larger than hop_size. Defaults to 300.
+## 汉化
 
-### Hop Size
-
-Length of each RMS frame, presented in milliseconds. Increasing this value will increase the precision of slicing, but will slow down the process. Defaults to 10.
-
-### Maximum Silence Length
-
-The maximum silence length kept around the sliced audio, presented in milliseconds. Adjust this value according to your needs. Note that setting this value does not mean that silence parts in the sliced audio have exactly the given length. The algorithm will search for the best position to slice, as described above. Defaults to 1000.
-
-## Performance
-
-This application runs over 400x faster than real-time on an Intel i7 8750H CPU. Speed may vary according to your CPU and your disk.
+汉化 by Re-TikaRa

@@ -127,10 +127,14 @@ class MainWindow(QMainWindow):
         self.ui.lwTaskList.clear()
 
     def _on_about(self):
+        language_label = i18n.LANGUAGES.get(self.current_language, self.current_language)
         QMessageBox.information(
             self,
             i18n.text("about", self.current_language),
-            i18n.text("about_text", self.current_language).format(version=APP_VERSION),
+            i18n.text("about_text", self.current_language).format(
+                version=APP_VERSION,
+                language=language_label,
+            ),
         )
 
     def _on_start(self):
@@ -156,6 +160,7 @@ class MainWindow(QMainWindow):
 
         class WorkThread(QThread):
             oneFinished = Signal()
+            errorOccurred = Signal(str, str)
 
             def __init__(self, filenames: List[str], window: MainWindow, output_ext: str):
                 super().__init__()
@@ -166,52 +171,55 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 for filename in self.filenames:
-                    audio, sr = soundfile.read(filename, dtype=np.float32)
-                    is_mono = True
-                    if len(audio.shape) > 1:
-                        is_mono = False
-                        audio = audio.T
-                    slicer = Slicer(
-                        sr=sr,
-                        threshold=float(self.win.ui.leThreshold.text()),
-                        min_length=int(self.win.ui.leMinLen.text()),
-                        min_interval=int(
-                            self.win.ui.leMinInterval.text()),
-                        hop_size=int(self.win.ui.leHopSize.text()),
-                        max_sil_kept=int(self.win.ui.leMaxSilence.text())
-                    )
-                    sil_tags, total_frames, waveform_shape = slicer.get_slice_tags(audio)
+                    try:
+                        audio, sr = soundfile.read(filename, dtype=np.float32)
+                        is_mono = True
+                        if len(audio.shape) > 1:
+                            is_mono = False
+                            audio = audio.T
+                        slicer = Slicer(
+                            sr=sr,
+                            threshold=float(self.win.ui.leThreshold.text()),
+                            min_length=int(self.win.ui.leMinLen.text()),
+                            min_interval=int(
+                                self.win.ui.leMinInterval.text()),
+                            hop_size=int(self.win.ui.leHopSize.text()),
+                            max_sil_kept=int(self.win.ui.leMaxSilence.text())
+                        )
+                        sil_tags, total_frames, waveform_shape = slicer.get_slice_tags(audio)
 
-                    preview = SlicingPreview(
-                        filename=filename,
-                        sil_tags=sil_tags,
-                        hop_size=int(self.win.ui.leHopSize.text()),
-                        total_frames=total_frames,
-                        waveform_shape=waveform_shape,
-                        theme=self.win._get_theme()
-                    )
-                    preview.save_plot('preview.png')
+                        preview = SlicingPreview(
+                            filename=filename,
+                            sil_tags=sil_tags,
+                            hop_size=int(self.win.ui.leHopSize.text()),
+                            total_frames=total_frames,
+                            waveform_shape=waveform_shape,
+                            theme=self.win._get_theme()
+                        )
+                        preview.save_plot('preview.png')
 
-                    chunks = slicer.slice(audio, sil_tags, total_frames)
-                    out_dir = self.win.ui.leOutputDir.text()
-                    if out_dir == '':
-                        out_dir = os.path.dirname(os.path.abspath(filename))
-                    else:
-                        # Make dir if not exists
-                        info = QDir(out_dir)
-                        if not info.exists():
-                            info.mkpath(out_dir)
+                        chunks = slicer.slice(audio, sil_tags, total_frames)
+                        out_dir = self.win.ui.leOutputDir.text()
+                        if out_dir == '':
+                            out_dir = os.path.dirname(os.path.abspath(filename))
+                        else:
+                            # Make dir if not exists
+                            info = QDir(out_dir)
+                            if not info.exists():
+                                info.mkpath(out_dir)
 
-                    self.win.last_output_dir = out_dir
+                        self.win.last_output_dir = out_dir
 
-                    for i, chunk in enumerate(chunks):
-                        path = os.path.join(out_dir, f'%s_%d.{self.output_ext}' % (os.path.basename(filename)
-                                                                                   .rsplit('.', maxsplit=1)[0], i))
-                        if not is_mono:
-                            chunk = chunk.T
-                        soundfile.write(path, chunk, sr)
-
-                    self.oneFinished.emit()
+                        for i, chunk in enumerate(chunks):
+                            path = os.path.join(out_dir, f'%s_%d.{self.output_ext}' % (os.path.basename(filename)
+                                                                                       .rsplit('.', maxsplit=1)[0], i))
+                            if not is_mono:
+                                chunk = chunk.T
+                            soundfile.write(path, chunk, sr)
+                    except Exception as exc:
+                        self.errorOccurred.emit(filename, str(exc))
+                    finally:
+                        self.oneFinished.emit()
 
         # Collect paths
         paths: list[str] = []
@@ -230,6 +238,7 @@ class MainWindow(QMainWindow):
         # Start work thread
         worker = WorkThread(paths, self, output_format)
         worker.oneFinished.connect(self._oneFinished)
+        worker.errorOccurred.connect(self._on_worker_error)
         worker.finished.connect(self._threadFinished)
         worker.start()
 
@@ -238,6 +247,16 @@ class MainWindow(QMainWindow):
     def _oneFinished(self):
         self.workFinished += 1
         self.ui.progressBar.setValue(self.workFinished)
+
+    def _on_worker_error(self, filename: str, error: str):
+        QMessageBox.warning(
+            self,
+            i18n.text("warning_title", self.current_language),
+            i18n.text("read_failed", self.current_language).format(
+                file=filename,
+                error=error,
+            ),
+        )
 
     def _threadFinished(self):
         # Join all workers
@@ -343,7 +362,18 @@ class MainWindow(QMainWindow):
         filename = item.data(Qt.ItemDataRole.UserRole + 1)
         if not filename:
             return
-        audio, sr = soundfile.read(filename, dtype=np.float32)
+        try:
+            audio, sr = soundfile.read(filename, dtype=np.float32)
+        except Exception as exc:
+            QMessageBox.warning(
+                self,
+                i18n.text("warning_title", self.current_language),
+                i18n.text("read_failed", self.current_language).format(
+                    file=filename,
+                    error=str(exc),
+                ),
+            )
+            return
         if len(audio.shape) > 1:
             audio = audio.T
         slicer = Slicer(
