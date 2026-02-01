@@ -18,7 +18,7 @@ from audio_slicer.gui.Ui_MainWindow import Ui_MainWindow
 from audio_slicer.utils.preview import SlicingPreview
 from audio_slicer.modules import i18n
 
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.5.0"
 
 
 class _FallbackBridge(QObject):
