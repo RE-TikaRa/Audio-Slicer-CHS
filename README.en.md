@@ -16,6 +16,10 @@ A simple GUI application that slices audio with silence detection.
 - Output formats: wav / flac / mp3
 - Multilingual UI
 - Drag & drop audio import
+- Dynamic threshold and VAD (voice activity detection)
+- Parallel slicing (multi-thread / multi-process)
+- Decode fallback: FFmpeg / Librosa
+- Presets, naming rules, and slice list export (CSV / JSON)
 
 ## Quick Start
 
@@ -42,6 +46,9 @@ uv run python scripts/slicer.py path/to/audio.wav
 - Parameters are on the Settings panel at the right.
 - Language switch: use the Language dropdown in the Settings panel.
 - Enable “Open output directory when finished” to open the output folder automatically.
+- Presets: save/delete commonly used settings for quick reuse.
+- Naming rules: optional prefix/suffix/timestamp for outputs.
+- Export list: output CSV/JSON for slice ranges and paths.
 
 ## Parameters
 
@@ -50,6 +57,12 @@ uv run python scripts/slicer.py path/to/audio.wav
 - Minimum Interval: minimum silence length for slicing (ms), default 300.
 - Hop Size: RMS frame size (ms), default 10.
 - Maximum Silence Length: max kept silence around slices (ms), default 1000.
+- Dynamic Threshold: estimate noise floor from RMS distribution and apply an offset (dB).
+- VAD: compensate for low-energy speech to avoid over-splitting.
+- VAD Sensitivity: higher values keep quieter speech more easily.
+- VAD Hangover: extra keep time after speech ends (ms).
+- Parallel Mode / Jobs: choose serial / multi-thread / multi-process and worker count.
+- Decode Fallback: strategy on read errors (ask / auto / skip).
 
 ## Project Structure
 

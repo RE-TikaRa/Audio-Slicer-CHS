@@ -16,6 +16,10 @@
 - 输出格式：wav / flac / mp3
 - 多语言界面
 - 支持拖拽导入音频
+- 动态阈值与 VAD（语音活动检测）
+- 并行切片（多线程 / 多进程）
+- 解码回退：FFmpeg / Librosa
+- 预设管理、命名规则与切片清单导出（CSV / JSON）
 
 ## 快速开始
 
@@ -42,6 +46,9 @@ uv run python scripts/slicer.py path/to/audio.wav
 - 参数设置在右侧 Settings 面板内。
 - 语言切换：主界面右侧 Settings 的 Language 下拉框。
 - 勾选“Open output directory when finished”可在完成后自动打开输出目录。
+- 预设：可保存/删除常用参数，便于快速复用。
+- 命名规则：可设置前缀/后缀/时间戳。
+- 导出清单：可输出 CSV/JSON 记录切片区间与路径。
 
 ## 参数说明
 
@@ -50,6 +57,12 @@ uv run python scripts/slicer.py path/to/audio.wav
 - Minimum Interval（最小间隔）：静音段最小长度（ms），默认 300。
 - Hop Size（步长）：RMS 帧长度（ms），默认 10。
 - Maximum Silence Length（最大静音长度）：切片两端保留的最大静音长度（ms），默认 1000。
+- Dynamic Threshold（动态阈值）：根据 RMS 分布自动估计噪声底并应用偏移（dB）。
+- VAD（语音活动检测）：对低能量语音进行补偿，减少误切。
+- VAD Sensitivity（灵敏度）：值越大越敏感（更容易保留安静语音）。
+- VAD Hangover：在语音结束后额外保留的延迟时间（ms）。
+- Parallel Mode / Jobs（并行）：选择串行/多线程/多进程及并行数量。
+- Decode Fallback（解码回退）：读取失败时的处理策略（询问 / 自动 / 跳过）。
 
 ## 项目结构
 

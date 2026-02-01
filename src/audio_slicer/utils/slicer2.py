@@ -42,6 +42,40 @@ def get_rms(
     return np.sqrt(power)
 
 
+def rms_to_db(rms: np.ndarray, eps: float = 1e-12) -> np.ndarray:
+    return 20 * np.log10(np.clip(rms, a_min=eps, a_max=None))
+
+
+def estimate_dynamic_threshold_db(
+    rms_list: np.ndarray,
+    *,
+    offset_db: float = 6.0,
+    percentile: float = 20.0,
+    min_db: float = -80.0,
+    max_db: float = -5.0,
+) -> float:
+    rms_db = rms_to_db(rms_list)
+    noise_floor = float(np.percentile(rms_db, percentile))
+    threshold_db = noise_floor + offset_db
+    return float(np.clip(threshold_db, min_db, max_db))
+
+
+def build_vad_mask(
+    rms_list: np.ndarray,
+    *,
+    threshold_db: float,
+    sensitivity_db: float = 6.0,
+    hangover_frames: int = 0,
+) -> np.ndarray:
+    rms_db = rms_to_db(rms_list)
+    vad_threshold_db = threshold_db - sensitivity_db
+    mask = rms_db >= vad_threshold_db
+    if hangover_frames > 1:
+        kernel = np.ones(hangover_frames, dtype=np.int32)
+        mask = np.convolve(mask.astype(np.int32), kernel, mode="same") > 0
+    return mask
+
+
 class Slicer:
     def __init__(self,
                  sr: int,
@@ -55,6 +89,7 @@ class Slicer:
         if not max_sil_kept >= hop_size:
             raise ValueError('The following condition must be satisfied: max_sil_kept >= hop_size')
         min_interval = sr * min_interval / 1000
+        self.threshold_db = threshold
         self.threshold = 10 ** (threshold / 20.)
         self.hop_size = round(sr * hop_size / 1000)
         self.win_size = min(round(min_interval), 4 * self.hop_size)
@@ -68,7 +103,22 @@ class Slicer:
         else:
             return waveform[begin * self.hop_size: min(waveform.shape[0], end * self.hop_size)]
 
-    def get_slice_tags(self, waveform):
+    def get_rms_list(self, waveform) -> np.ndarray:
+        if len(waveform.shape) > 1:
+            samples = waveform.mean(axis=0)
+        else:
+            samples = waveform
+        rms_list = get_rms(y=samples, frame_length=self.win_size, hop_length=self.hop_size).squeeze(0)
+        return rms_list
+
+    def get_slice_tags(
+        self,
+        waveform,
+        *,
+        dynamic_threshold_db: float | None = None,
+        vad_mask=None,
+        rms_list: np.ndarray | None = None,
+    ):
         if len(waveform.shape) > 1:
             samples = waveform.mean(axis=0)
         else:
@@ -77,13 +127,21 @@ class Slicer:
         if total_frames <= self.min_length:
             waveform_shape = waveform.shape[1] if len(waveform.shape) > 1 else waveform.shape[0]
             return [], total_frames, waveform_shape
-        rms_list = get_rms(y=samples, frame_length=self.win_size, hop_length=self.hop_size).squeeze(0)
+        if rms_list is None:
+            rms_list = get_rms(y=samples, frame_length=self.win_size, hop_length=self.hop_size).squeeze(0)
+        threshold = self.threshold
+        if dynamic_threshold_db is not None:
+            threshold = 10 ** (dynamic_threshold_db / 20.)
+        if vad_mask is not None:
+            length = min(len(rms_list), len(vad_mask))
+            rms_list = rms_list.copy()
+            rms_list[:length][vad_mask[:length]] = max(threshold, rms_list.max()) + 1e-6
         sil_tags = []
         silence_start = None
         clip_start = 0
         for i, rms in enumerate(rms_list):
             # Keep looping while frame is silent.
-            if rms < self.threshold:
+            if rms < threshold:
                 # Record start of silent frames.
                 if silence_start is None:
                     silence_start = i
